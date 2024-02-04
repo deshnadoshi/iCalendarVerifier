@@ -1,0 +1,14 @@
+{
+  "name": "software-engineering-assignement-3",
+  "version": "1.0.0",
+  "description": "Software Engineering Assignment 3, Deshna Doshi",
+  "main": "appointment.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Deshna Doshi",
+  "license": "ISC",
+  "devDependencies": {
+    "jasmine": "^5.1.0"
+  }
+}
