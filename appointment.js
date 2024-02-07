@@ -421,6 +421,10 @@ function check_dtstamp(all_records_array){
         }
     }
 
+    if (time_str_array.length < 1){
+        console.log("Please check your file for a formatting issue under DTSTAMP"); 
+    }
+
     for (let i = 0; i < time_str_array.length; i++){
         if (time_str_array[i].includes(":")){
             let time_val = []; 
@@ -492,6 +496,10 @@ function check_dtstart(all_records_array){
                 time_str_array.push(record_i[j]); 
             }
         }
+    }
+
+    if (time_str_array.length < 1){
+        console.log("Please check your file for a formatting issue under DTSTART"); 
     }
 
     for (let i = 0; i < time_str_array.length; i++){
@@ -567,7 +575,8 @@ function check_version(record_array){
     let valid_value = true; 
     let ver_arr = [];
     let ver_val = []; 
-    const version_regex = /^\d+(\.\d+)?$/;
+    const version_regex = /^\d+(\.\d+)*$/
+
 
     for (let i = 0; i < record_array.length; i++){
         if ((record_array[i].toLowerCase()).includes("version")){
