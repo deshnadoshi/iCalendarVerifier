@@ -27,6 +27,12 @@ function process_input(file_name_string){
                 let lines = file_data.split('\n');
 
                 let meets_qty_req = true; 
+                let meets_att_req = true; 
+                let meets_met_req = true; 
+                let meets_stat_req = true; 
+                let meets_dtstamp_req = true; 
+                let meets_dtstart_req = true; 
+                let meets_version_req = true; 
 
                 let contains_whitespace = lines.some(line => /^\s*$/.test(line));
                 if (contains_whitespace){
@@ -74,6 +80,46 @@ function process_input(file_name_string){
                 meets_qty_req = are_any_false(check_records); 
                 
                 // Check if the attendee value is an email or a phone number
+                check_records = []; 
+                for (let i = 0; i < records.length; i++){
+                    record_i = split_record(records[i]); // record_i is the array storing the individual lines of the current record
+                    check_records.push(check_attendee(record_i)); 
+                } 
+
+                meets_att_req = are_any_false(check_records); 
+                
+                // Check if the method value is request
+                check_records = []; 
+                for (let i = 0; i < records.length; i++){
+                    record_i = split_record(records[i]); // record_i is the array storing the individual lines of the current record
+                    check_records.push(check_method(record_i)); 
+                } 
+
+                meets_met_req = are_any_false(check_records); 
+                
+                // Check if the status value is tentative, cancelled, or confirmed
+                check_records = []; 
+                for (let i = 0; i < records.length; i++){
+                    record_i = split_record(records[i]); // record_i is the array storing the individual lines of the current record
+                    check_records.push(check_status(record_i)); 
+                } 
+
+                meets_stat_req = are_any_false(check_records); 
+
+                // Check dtstamp
+                meets_dtstamp_req = check_dtstamp(records); 
+
+                // Check dtstart
+                meets_dtstart_req = check_dtstart(records); 
+
+                // Check version 
+                check_records = []; 
+                for (let i = 0; i < records.length; i++){
+                    record_i = split_record(records[i]); // record_i is the array storing the individual lines of the current record
+                    check_records.push(check_version(record_i)); 
+                } 
+
+                meets_version_req = are_any_false(check_records); 
                 
             } 
         }); 
@@ -138,9 +184,6 @@ function check_requirements(record_array){
     let status_count = 0; 
     let unknown_count = 0; 
 
-    let summary_count = 0; // optional 
-    let orgname_count = 0; // optional 
-
     let valid_vevent = true;
     
 
@@ -159,10 +202,6 @@ function check_requirements(record_array){
             method_count++; 
         } else if ((record_array[i].toLowerCase()).includes("status")){
             status_count++; 
-        } else if ((record_array[i].toLowerCase()).includes("summary")){
-            summary_count++; 
-        } else if ((record_array[i].toLowerCase()).includes("organizer")){
-            orgname_count++; 
         } else if (!((record_array[i].toLowerCase()).includes("begin") || (record_array[i].toLowerCase()).includes("end"))){
             unknown_count++; 
         }
@@ -210,15 +249,13 @@ function check_requirements(record_array){
 
     }
     
-    if (summary_count > 1){
-        console.log("You may not have more than one SUMMARY property.");
+    if (unknown_count > 1){
+        console.log("WARNING: You have a non-required property."); 
         valid_vevent = false; 
     }
 
-    if (orgname_count > 1){
-        console.log("You may not have more than one ORGANIZER property."); 
-        valid_vevent = false; 
-    }
+
+    // if the sum of the occurences > the total number of lines in the record, then there's an issue (not sure how to calculate this).
 
     return valid_vevent; 
 
@@ -241,8 +278,6 @@ function check_attendee(record_array){
     }
 
     if (atd_line.includes(":")){
-
-    } else {
         atd_arr = atd_line.split(":"); 
         if (atd_arr > 2){
             // there are more than 2 values after you split, so it's invalid
@@ -251,13 +286,532 @@ function check_attendee(record_array){
         } else {
             atd_val = atd_arr[atd_arr.length - 1]; 
             if (email_regex.test(atd_val) || phone_regex.test(atd_val)){
-                // matches the regex
+                // only need to verify here, so just set it equal to true
+                valid_value = true; 
+            } else {
+                valid_value = false; 
+                console.log("Please check your file for a VALUE issue under ATTENDEE. The VALUE must be an email or a 10-digit phone number."); 
             }
         }
+
+    } else {
+        console.log("Please check your file for a formatting issue under ATTENDEE"); 
     }
 
     return valid_value; 
 
+}
+
+function check_method(record_array){
+    let mtd_line = ""; 
+    let valid_value = true; 
+    let mtd_arr = [];
+    let mtd_val = []; 
+
+
+    for (let i = 0; i < record_array.length; i++){
+        if ((record_array[i].toLowerCase()).includes("method")){
+            mtd_line = record_array[i]; 
+        }
+    }
+
+    if (mtd_line.includes(":")){
+        mtd_arr = mtd_line.split(":"); 
+        if (mtd_arr > 2){
+            // there are more than 2 values after you split, so it's invalid
+            console.log("Please check your file for a formatting issue under METHOD."); 
+            valid_value = false; 
+        } else {
+            mtd_val = mtd_arr[mtd_arr.length - 1]; 
+            if (mtd_val.toLowerCase() === "request"){
+                // only need to verify here, so just set it equal to true
+                valid_value = true; 
+            } else {
+                valid_value = false; 
+                console.log("Please check your file for a VALUE issue under METHOD. The VALUE must be REQUEST."); 
+            }
+        }
+
+    } else {
+        console.log("Please check your file for a formatting issue under METHOD"); 
+    }
+
+    return valid_value; 
+}
+
+function check_status(record_array){
+
+    let status_line = ""; 
+    let valid_value = true; 
+    let status_arr = [];
+    let status_val = []; 
+
+
+    for (let i = 0; i < record_array.length; i++){
+        if ((record_array[i].toLowerCase()).includes("status")){
+            status_line = record_array[i]; 
+        }
+    }
+
+    if (status_line.includes(":")){
+        status_arr = status_line.split(":"); 
+        if (status_arr > 2){
+            // there are more than 2 values after you split, so it's invalid
+            console.log("Please check your file for a formatting issue under STATUS."); 
+            valid_value = false; 
+        } else {
+            status_val = status_arr[status_arr.length - 1]; 
+            if (status_val.toLowerCase() === "tentative" || status_val.toLowerCase() === "confirmed" || status_val.toLowerCase() === "cancelled"){
+                // only need to verify here, so just set it equal to true
+                valid_value = true; 
+            } else {
+                valid_value = false; 
+                console.log("Please check your file for a VALUE issue under STATUS. The VALUE must be TENTATIVE, CONFIRMED, or CANCELLED."); 
+            }
+        }
+
+    } else {
+        console.log("Please check your file for a formatting issue under STATUS"); 
+    }
+
+    return valid_value; 
+
+
+}
+
+/**
+ * Checks if the value of the DTSTAMP parameter is valid. 
+ */
+function check_dtstamp(all_records_array){
+
+    let time_str_array = []; 
+    let time_arr = []; 
+    let is_time_valid = true; 
+    let is_format_correct = []; 
+    let is_date_nums_valid = []; 
+
+    for (let i = 0; i < all_records_array.length; i++){
+        record_i = split_record(all_records_array[i]); 
+        for (let j = 0; j < record_i.length; j++){
+            if ((record_i[j].toLowerCase()).includes("dtstamp")){
+                time_str_array.push(record_i[j]); 
+            }
+        }
+    }
+
+    for (let i = 0; i < time_str_array.length; i++){
+        if (time_str_array[i].includes(":")){
+            let time_val = []; 
+            time_val = time_str_array[i].split(":"); 
+            if (time_val.length > 2 || time_val.length < 1){
+                console.log("Please check your file for a formatting issue under DTSTAMP.");  
+                is_time_valid = false; 
+                break; 
+            } else {
+                time_arr.push(time_val[1]); 
+            }
+        } else {
+            is_time_valid = false; 
+            console.log("Please check your file for a formatting issue under DTSTAMP.");  
+            break; 
+        }
+        
+    }
+
+    if (time_str_array.length == time_arr.length){
+
+        for (let i = 0; i < time_arr.length; i++){
+            is_format_correct.push(check_input_date(time_arr[i])); 
+        }
+
+        for (let i = 0; i < is_format_correct.length; i++){
+            if (is_format_correct[i] == false){
+                is_time_valid = false; 
+                console.log("Please check your file for a formatting issue under DTSTAMP.");  
+            }
+        }
+
+        if (is_time_valid == true){
+            // so there are no issues with format thus far
+            for (let i = 0; i < time_arr.length; i++){
+                is_date_nums_valid.push(check_valid_date(time_arr[i])); 
+            }
+            
+            for (let i = 0; i < is_date_nums_valid.length; i++){
+                if (is_date_nums_valid[i] == false){
+                    is_time_valid = false; 
+                    console.log("Please check your file for a VALUE issue under DTSTAMP.");  
+                }
+            }
+        }
+
+    }
+
+    return is_time_valid; 
+
+}
+
+
+/**
+ * Checks if the value of the DTSTART parameter is valid. 
+ */
+function check_dtstart(all_records_array){
+
+    let time_str_array = []; 
+    let time_arr = []; 
+    let is_time_valid = true; 
+    let is_format_correct = []; 
+    let is_date_nums_valid = []; 
+
+    for (let i = 0; i < all_records_array.length; i++){
+        record_i = split_record(all_records_array[i]); 
+        for (let j = 0; j < record_i.length; j++){
+            if ((record_i[j].toLowerCase()).includes("dtstart")){
+                time_str_array.push(record_i[j]); 
+            }
+        }
+    }
+
+    for (let i = 0; i < time_str_array.length; i++){
+        if (time_str_array[i].includes(":")){
+            let time_val = []; 
+            time_val = time_str_array[i].split(":"); 
+            if (time_val.length > 2 || time_val.length < 1){
+                console.log("Please check your file for a formatting issue under DTSTART.");  
+                is_time_valid = false; 
+                break; 
+            } else {
+                time_arr.push(time_val[1]); 
+            }
+        } else {
+            is_time_valid = false; 
+            console.log("Please check your file for a formatting issue under DTSTART.");  
+            break; 
+        }
+        
+    }
+
+    if (time_str_array.length == time_arr.length){
+        // if their lengths arent the same it means tht some of the times were invalid
+        // if their lengths ARE the same it means that all the entries are valid and so now i can check them for formatting
+        // console.log(time_arr); 
+
+        for (let i = 0; i < time_arr.length; i++){
+            is_format_correct.push(check_input_date(time_arr[i])); 
+        }
+
+        for (let i = 0; i < is_format_correct.length; i++){
+            if (is_format_correct[i] == false){
+                is_time_valid = false; 
+                console.log("Please check your file for a formatting issue under DTSTART.");  
+            }
+        }
+
+        if (is_time_valid == true){
+            // so there are no issues with format thus far
+            for (let i = 0; i < time_arr.length; i++){
+                is_date_nums_valid.push(check_valid_date(time_arr[i])); 
+            }
+            
+            for (let i = 0; i < is_date_nums_valid.length; i++){
+                if (is_date_nums_valid[i] == false){
+                    is_time_valid = false; 
+                    console.log("Please check your file for a VALUE issue under DTSTART.");  
+                }
+            }
+        }
+
+        if (is_time_valid == true){
+            for (let i = 0; i < time_arr.length; i++){
+                is_date_nums_valid.push(check_day_available(time_arr[i])); 
+            }
+            
+            for (let i = 0; i < is_date_nums_valid.length; i++){
+                if (is_date_nums_valid[i] == false){
+                    is_time_valid = false; 
+                    console.log("Please check your file for a VALUE issue under DTSTART.");  
+                }
+            }
+        }
+
+    }
+
+    return is_time_valid; 
+
+}
+
+function check_version(record_array){
+    let ver_line = ""; 
+    let valid_value = true; 
+    let ver_arr = [];
+    let ver_val = []; 
+    const version_regex = /^\d+(\.\d+)?$/;
+
+    for (let i = 0; i < record_array.length; i++){
+        if ((record_array[i].toLowerCase()).includes("version")){
+            ver_line = record_array[i]; 
+        }
+    }
+
+    if (ver_line.includes(":")){
+        ver_arr = ver_line.split(":"); 
+        if (ver_arr > 2){
+            // there are more than 2 values after you split, so it's invalid
+            console.log("Please check your file for a formatting issue under VERSION."); 
+            valid_value = false; 
+        } else {
+            ver_val = ver_arr[ver_arr.length - 1]; 
+            if (version_regex.test(ver_val)){
+                // only need to verify here, so just set it equal to true
+                valid_value = true; 
+            } else {
+                valid_value = false; 
+                console.log("Please check your file for a VALUE issue under VERSION. The VALUE must be an numerical and may contain periods. The VALUE may not end with a period."); 
+            }
+        }
+
+    } else {
+        console.log("Please check your file for a formatting issue under VERSION"); 
+    }
+
+    return valid_value; 
+
+}
+
+
+
+
+
+
+
+/**
+ * Determines if the chosen date and time is valid. 
+ * Checks for maximum and minimum possible values of each field. 
+ * @param {} check_date The date inputted by the user. 
+ * @returns True if the date is valid, false otherwise. 
+ */
+function check_valid_date(check_date){
+    is_valid_date = true; // Assuming the format is valid, we can split up the date
+    
+    let year = parseInt(date_split(check_date).year);
+    let month = parseInt(date_split(check_date).month);
+    let day = parseInt(date_split(check_date).day);
+    let hour = parseInt(date_split(check_date).hour);
+    let min = parseInt(date_split(check_date).min);
+    let sec = parseInt(date_split(check_date).sec); 
+
+
+    // Check for month and day. 
+    if (month > 12 || month < 1){
+        console.log("The month is invalid."); 
+        is_valid_date = false; 
+    }
+
+    if (day > 31 || day < 1){ 
+        console.log("The day is invalid."); 
+        is_valid_date = false; // Basic check for date range (need to implement check for specific days)
+    }
+
+
+    if (match_month(year, month, day) == false){
+        console.log("The number of days does not match the month or year."); 
+        // Checks if the month matches the month
+        is_valid_date = false; 
+    }
+
+    if (hour > 23 || hour < 0){
+        console.log("HOURS are invalid."); 
+        is_valid_date = false; 
+    }
+
+    if (min > 59 || min < 0){
+        console.log("MINUTES are invalid."); 
+        is_valid_date = false; 
+    }
+
+    if (sec > 59 || sec < 0){
+        console.log("SECONDS are invalid."); 
+        is_valid_date = false; 
+    }
+      
+
+
+    
+    return is_valid_date; 
+
+}
+
+/**
+ * Determines if the number of days matches the month. 
+ * For example, if the month is January, the maximum number of days it can have is 31. 
+ * @param {*} year_num The value of the year. 
+ * @param {*} month_num The value of the monht. 
+ * @param {*} days_num The value of the day. 
+ * @returns 
+ */
+function match_month(year_num, month_num, days_num){
+    if (month == 1 || month == 3 || month == 5 || month == 7 || month == 8 || month == 10 || month == 12){
+        if (days_num > 31 || days_num <= 0){
+            return false; 
+        }
+    } else if (month == 4 || month == 6 || month == 9 || month == 11){
+        if (days_num > 30 || days_num <= 0){
+            return false; 
+        }
+    } else if (month == 2){
+        if (is_leap_year(year_num)){ // If February is a leap year, the days should be less than 29
+            if (days_num > 29 || days_num < 0){
+                return false; 
+            }
+        } else {
+            if (days_num > 28 || days_num < 0){
+                return false; 
+            }
+        }
+    }
+
+    return true; 
+}
+
+/**
+ * Determines if a given year is a leap year. 
+ * @param {} year_num The value of the year. 
+ * @returns True if the given year is a leap year, false otherwise. 
+ */
+function is_leap_year (year_num){
+    if (year_num % 4 == 0){
+        if (year_num % 100 == 0){
+            if (year_num % 400 == 0){
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * Determines if the entered date is of the correct format. 
+ * @param {*} check_date The date entered by the user.  
+ * @returns True if the date is valid, false otherwise. 
+ */
+function check_input_date(check_date){
+    matched = false; 
+    // YYYY MM DD T HH MM SS
+    let date_regex = /[0-9][0-9][0-9][0-9][0-1][0-9][0-2][0-9]T[0-2][0-9][0-5][0-9][0-5][0-9]/;
+    if (date_regex.test(check_date)){
+        matched = true; 
+    }
+
+    if (!matched){
+        console.log("DTSTAMP and DTSTART values must follow the format: YYYYMMDDTHHMMSS."); 
+    }
+
+    return matched; 
+}
+
+/**
+ * Splits the date apart into year, month, day, hour, minute, and second. 
+ * @param {} cmd_input The date entered by the user. 
+ * @returns The different components of the date (such as, year, month, etc.). 
+ */
+function date_split(cmd_input){
+    date_info = cmd_input.substring(0, 8); // All of the data before the 'T', represents the date
+    time_info = cmd_input.substring(9); // All of the data after the 'T', represents the time
+
+    year = date_info.substring(0, 4); 
+    month = date_info.substring(4, 6); 
+    day = date_info.substring(6); 
+
+    hour = time_info.substring(0, 2); 
+    min = time_info.substring(2, 4); 
+    sec = time_info.substring(4); 
+
+    return {
+        year: year,
+        month: month,
+        day: day,
+        hour: hour,
+        min: min,
+        sec: sec
+    };
+
+}
+
+/**
+ * Creating a Date object from the command line input. 
+ */
+function check_day_available(cmd_input){
+    let meets_day_req  = true; 
+
+    date_info = cmd_input.substring(0, 8); // All of the data before the 'T', represents the date
+    time_info = cmd_input.substring(9); // All of the data after the 'T', represents the time
+
+    year = date_info.substring(0, 4); 
+    month = date_info.substring(4, 6); 
+    day = date_info.substring(6); 
+
+    hour = time_info.substring(0, 2); 
+    min = time_info.substring(2, 4); 
+    sec = time_info.substring(4);
+
+    date_arg = year + "-" + month + "-" + day + "T" + hour + ":" + min + ":" + sec; 
+
+    date_obj = new Date(date_arg);  
+    
+    if (date_obj.getDay() === 0) {
+        meets_day_req = false; 
+        console.log('DTSTART falls on a Sunday. The office is closed on Sundays. Please choose another day.');
+    } 
+
+    if (!(date_obj.getHours() >= 9 && date_obj.getHours() <= 15)){
+        meets_day_req = false; 
+        console.log('DTSTART falls outside of 9 AM to 3 PM. The office is closed before 9 AM and after 3 PM. Please choose another time.');
+
+    }
+
+    if (!is_future_date(cmd_input)){
+        meets_day_req = false; 
+        console.log("DTSTART is not a future date. You may only schedule appointments at future dates."); 
+    }
+
+    return meets_day_req; 
+     
+}
+
+function is_future_date(cmd_input){
+
+    const today = new Date(); 
+    let currentDay = today.getDate();
+    let currentMonth = today.getMonth() + 1; // goes from 0 to 11
+    let currentYear = today.getFullYear();
+
+
+    date_info = cmd_input.substring(0, 8); // All of the data before the 'T', represents the date
+    time_info = cmd_input.substring(9); // All of the data after the 'T', represents the time
+
+    let year = parseInt(date_info.substring(0, 4)); 
+    let month = parseInt(date_info.substring(4, 6)); 
+    let day = parseInt(date_info.substring(6)); 
+
+
+    if(year > currentYear){
+        return true;
+    } else if (year == currentYear){
+        if (month > currentMonth){
+            return true;
+        } else if (month == currentMonth){
+            if (day > currentDay){
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 
