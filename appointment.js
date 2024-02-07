@@ -34,6 +34,9 @@ function process_input(file_name_string){
                 let meets_dtstart_req = true; 
                 let meets_version_req = true; 
 
+                let begin_counter = 0; 
+                let end_counter = 0;
+
                 let contains_whitespace = lines.some(line => /^\s*$/.test(line));
                 if (contains_whitespace){
                     if_whitespace = true; 
@@ -41,7 +44,7 @@ function process_input(file_name_string){
                 }
 
                 file_data.split(/\r?\n/).forEach(line =>  {
-
+                     
                     if ((line.toLowerCase()).includes("begin:vcalendar")){
                         if_rec_begin = true; 
                     }
@@ -52,6 +55,7 @@ function process_input(file_name_string){
 
                     if (if_rec_end == false){
                         if ((line.toLowerCase()).includes("begin:vevent")){
+                            begin_counter++; 
                             if_cal_begin = true;  
                             if_cal_end = false; 
                         } 
@@ -61,65 +65,83 @@ function process_input(file_name_string){
                         }
                         
                         if ((line.toLowerCase()).includes("end:vevent")){ 
+                            end_counter++; 
                             records.push(current_record); 
                             if_cal_end = true;  
                             if_cal_begin = false; 
                             current_record = ""; 
                         }
                     }
+
+
                     
                 });
 
-                let check_records = []; 
+                if (begin_counter < 1 || end_counter < 1){
+                    console.log("You must have at least one VEVENT in your file. Please edit the file and try again."); 
+                } else {
+                    let check_records = []; 
 
-                // Check the basic requirements for quantity
-                for (let i = 0; i < records.length; i++){
-                    record_i = split_record(records[i]); // record_i is the array storing the individual lines of the current record
-                    check_records.push(check_requirements(record_i)); 
-                } 
-                meets_qty_req = are_any_false(check_records); 
+                    // Check the basic requirements for quantity
+                    for (let i = 0; i < records.length; i++){
+                        record_i = split_record(records[i]); // record_i is the array storing the individual lines of the current record
+                        check_records.push(check_requirements(record_i)); 
+                    } 
+                    meets_qty_req = are_any_false(check_records); 
+                    
+                    // Check if the attendee value is an email or a phone number
+                    check_records = []; 
+                    for (let i = 0; i < records.length; i++){
+                        record_i = split_record(records[i]); // record_i is the array storing the individual lines of the current record
+                        check_records.push(check_attendee(record_i)); 
+                    } 
+    
+                    meets_att_req = are_any_false(check_records); 
+                    
+                    // Check if the method value is request
+                    check_records = []; 
+                    for (let i = 0; i < records.length; i++){
+                        record_i = split_record(records[i]); // record_i is the array storing the individual lines of the current record
+                        check_records.push(check_method(record_i)); 
+                    } 
+    
+                    meets_met_req = are_any_false(check_records); 
+                    
+                    // Check if the status value is tentative, cancelled, or confirmed
+                    check_records = []; 
+                    for (let i = 0; i < records.length; i++){
+                        record_i = split_record(records[i]); // record_i is the array storing the individual lines of the current record
+                        check_records.push(check_status(record_i)); 
+                    } 
+    
+                    meets_stat_req = are_any_false(check_records); 
+    
+                    // Check dtstamp
+                    meets_dtstamp_req = check_dtstamp(records); 
+    
+                    // Check dtstart
+                    meets_dtstart_req = check_dtstart(records); 
+    
+                    // Check version 
+                    check_records = []; 
+                    for (let i = 0; i < records.length; i++){
+                        record_i = split_record(records[i]); // record_i is the array storing the individual lines of the current record
+                        check_records.push(check_version(record_i)); 
+                    } 
+    
+                    meets_version_req = are_any_false(check_records); 
+    
+                    // Check for optional arguments
+    
+                    if (meets_qty_req == true && meets_att_req == true && meets_met_req == true && meets_stat_req == true && meets_dtstamp_req == true && meets_dtstart_req == true && meets_version_req == true){
+                        console.log("The VEVENT has been verified. It contains no errors."); 
+                    } else {
+                        console.log("\n\n--YOU HAVE THE AFOREMENTIONED ISSUES IN YOUR RECORDS FILE. PLEASE EDIT THE FILE AND TRY AGAIN.--"); 
+                    }
+    
+                }
+
                 
-                // Check if the attendee value is an email or a phone number
-                check_records = []; 
-                for (let i = 0; i < records.length; i++){
-                    record_i = split_record(records[i]); // record_i is the array storing the individual lines of the current record
-                    check_records.push(check_attendee(record_i)); 
-                } 
-
-                meets_att_req = are_any_false(check_records); 
-                
-                // Check if the method value is request
-                check_records = []; 
-                for (let i = 0; i < records.length; i++){
-                    record_i = split_record(records[i]); // record_i is the array storing the individual lines of the current record
-                    check_records.push(check_method(record_i)); 
-                } 
-
-                meets_met_req = are_any_false(check_records); 
-                
-                // Check if the status value is tentative, cancelled, or confirmed
-                check_records = []; 
-                for (let i = 0; i < records.length; i++){
-                    record_i = split_record(records[i]); // record_i is the array storing the individual lines of the current record
-                    check_records.push(check_status(record_i)); 
-                } 
-
-                meets_stat_req = are_any_false(check_records); 
-
-                // Check dtstamp
-                meets_dtstamp_req = check_dtstamp(records); 
-
-                // Check dtstart
-                meets_dtstart_req = check_dtstart(records); 
-
-                // Check version 
-                check_records = []; 
-                for (let i = 0; i < records.length; i++){
-                    record_i = split_record(records[i]); // record_i is the array storing the individual lines of the current record
-                    check_records.push(check_version(record_i)); 
-                } 
-
-                meets_version_req = are_any_false(check_records); 
                 
             } 
         }); 
