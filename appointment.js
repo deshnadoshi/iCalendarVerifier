@@ -5,6 +5,14 @@ const readline = require('node:readline').createInterface({
     output: process.stdout,
 });
 
+const optional_properties = ["class", "created", "description", 
+"geo", "last-mod", "location", "organizer", "priority", 
+"seq", "status", "summary", "transp", "url", "recurid", 
+"rrule", "dtend", "duration", "attach", "attendee", 
+"categories", "comment", "contact", "exdate", "rstatus", 
+"related", "resources", "rdate", "x-prop", "iana-prop"
+]; 
+
 
 function process_input(file_name_string){   
     return new Promise((resolve, reject) => {
@@ -33,9 +41,12 @@ function process_input(file_name_string){
                 let meets_dtstamp_req = true; 
                 let meets_dtstart_req = true; 
                 let meets_version_req = true; 
+                let meets_cal_req = true; 
 
                 let begin_counter = 0; 
                 let end_counter = 0;
+
+                let outside_record = []; 
 
                 let contains_whitespace = lines.some(line => /^\s*$/.test(line));
                 if (contains_whitespace){
@@ -51,6 +62,10 @@ function process_input(file_name_string){
 
                     if ((line.toLowerCase()).includes("end:vcalendar")){
                         if_rec_end = true; 
+                    }
+
+                    if (if_rec_begin == true && if_rec_end == false && (if_cal_begin == false || if_cal_end == true)){
+                        outside_record.push(line); 
                     }
 
                     if (if_rec_end == false){
@@ -75,11 +90,14 @@ function process_input(file_name_string){
 
 
                     
-                });
+                });                
 
                 if (begin_counter < 1 || end_counter < 1){
                     console.log("You must have at least one VEVENT in your file. Please edit the file and try again."); 
                 } else {
+
+                    meets_cal_req = check_calendar(outside_record); 
+
                     let check_records = []; 
 
                     // Check the basic requirements for quantity
@@ -123,17 +141,18 @@ function process_input(file_name_string){
                     meets_dtstart_req = check_dtstart(records); 
     
                     // Check version 
-                    check_records = []; 
-                    for (let i = 0; i < records.length; i++){
-                        record_i = split_record(records[i]); // record_i is the array storing the individual lines of the current record
-                        check_records.push(check_version(record_i)); 
-                    } 
+                    // check_records = []; 
+                    // for (let i = 0; i < outside_record.length; i++){
+                    //     check_records.push(check_version(outside_record[i])); 
+                    // } 
+
+                    // check_version(outside_record[i]);
     
-                    meets_version_req = are_any_false(check_records); 
+                    // meets_version_req = are_any_false(check_records); 
     
                     // Check for optional arguments
     
-                    if (meets_qty_req == true && meets_att_req == true && meets_met_req == true && meets_stat_req == true && meets_dtstamp_req == true && meets_dtstart_req == true && meets_version_req == true){
+                    if (meets_qty_req == true && meets_att_req == true && meets_met_req == true && meets_stat_req == true && meets_dtstamp_req == true && meets_dtstart_req == true && meets_cal_req == true){
                         console.log("The VEVENT has been verified. It contains no errors."); 
                     } else {
                         console.log("\n\n--YOU HAVE THE AFOREMENTIONED ISSUES IN YOUR RECORDS FILE. PLEASE EDIT THE FILE AND TRY AGAIN.--"); 
@@ -204,17 +223,14 @@ function check_requirements(record_array){
     let dtstamp_count = 0; 
     let method_count = 0; 
     let status_count = 0; 
+    let optional_count = 0; 
     let unknown_count = 0; 
 
     let valid_vevent = true;
     
 
     for (let i = 0; i < record_array.length; i++){
-        if ((record_array[i].toLowerCase()).includes("prodid")){
-            prodid_count++; 
-        } else if ((record_array[i].toLowerCase()).includes("version")){
-            version_count++; 
-        } else if ((record_array[i].toLowerCase()).includes("attendee")){
+        if ((record_array[i].toLowerCase()).includes("attendee")){
             attendee_count++; 
         } else if ((record_array[i].toLowerCase()).includes("dtstart")){
             dtstart_count++; 
@@ -225,22 +241,18 @@ function check_requirements(record_array){
         } else if ((record_array[i].toLowerCase()).includes("status")){
             status_count++; 
         } else if (!((record_array[i].toLowerCase()).includes("begin") || (record_array[i].toLowerCase()).includes("end"))){
-            unknown_count++; 
+            // check optional or non existent properties here
+            record_array.forEach(element => {
+                if (optional_properties.includes(element)) {
+                    optional_count++;
+                } else {
+                    unknown_count++;
+                }
+            });
+            
         }
 
     }
-    
-    if (prodid_count != 1){
-        console.log("Please ensure you have one PRODID property."); 
-        valid_vevent = false;
-
-    } 
-    
-    if (version_count != 1){
-        console.log("Please ensure you have one VERSION property."); 
-        valid_vevent = false;
-
-    } 
     
     if (attendee_count != 1){
         console.log("Please ensure you have one ATTENDEE property."); 
@@ -271,13 +283,15 @@ function check_requirements(record_array){
 
     }
     
-    if (unknown_count > 1){
-        console.log("WARNING: You have a non-required property."); 
-        valid_vevent = false; 
+    if (optional_count > 1){
+        console.log("WARNING: You have one (or more) optional properties."); 
+        valid_vevent = true; 
     }
 
-
-    // if the sum of the occurences > the total number of lines in the record, then there's an issue (not sure how to calculate this).
+    if (unknown_count > 1){
+        console.log("ERROR: You have one (or more) unknown properties."); 
+        valid_vevent = false; 
+    }
 
     return valid_vevent; 
 
@@ -609,7 +623,53 @@ function check_version(record_array){
 
 }
 
+function check_calendar(out_array){
 
+    prodid_line = ""; 
+    version_line = ""; 
+    version_arr = []; 
+    is_valid_cal = true; 
+    const version_regex = /^\d+(\.\d+)*$/
+
+
+    for (let i = 0; i < out_array.length; i++){
+        if ((out_array[i].toLowerCase()).includes("prodid")){
+            prodid_line = out_array[i]; 
+        }
+    }
+
+    for (let i = 0; i < out_array.length; i++){
+        if ((out_array[i].toLowerCase()).includes("version")){
+            version_line = out_array[i]; 
+        }
+    }
+
+    if (version_line === ""){
+        console.log("Please ensure you have one VERSION property."); 
+        is_valid_cal = false;
+    } else {
+        version_arr = version_line.split(":"); 
+        if (version_arr.length != 2){
+            console.log("Please check your file for a formatting issue under VERSION"); 
+        } else {
+            if (version_regex.test(version_arr[1])){
+                is_valid_cal = true; 
+            } else {
+                is_valid_cal = false; 
+                console.log("Please check your file for a VALUE issue under VERSION. The VALUE must be an numerical and may contain periods. The VALUE may not end with a period."); 
+            }
+        }
+    }
+
+    if (prodid_line === ""){
+        console.log("Please ensure you have one PRODID property."); 
+        is_valid_cal = false; 
+    }
+
+
+    return is_valid_cal; 
+
+}
 
 
 
