@@ -7,10 +7,10 @@ const readline = require('node:readline').createInterface({
 
 const optional_properties = ["class", "created", "description", 
 "geo", "last-mod", "location", "organizer", "priority", 
-"seq", "status", "summary", "transp", "url", "recurid", 
-"rrule", "dtend", "duration", "attach", "attendee", 
+"seq", "summary", "transp", "url", "recurid", 
+"rrule", "dtend", "duration", "attach", 
 "categories", "comment", "contact", "exdate", "rstatus", 
-"related", "resources", "rdate", "x-prop", "iana-prop"
+"related", "resources", "rdate", "x-prop", "iana-prop", "name"
 ]; 
 
 
@@ -51,7 +51,6 @@ function process_input(file_name_string){
                 let contains_whitespace = lines.some(line => /^\s*$/.test(line));
                 if (contains_whitespace){
                     if_whitespace = true; 
-                    console.log("There is white-space in your file. Please delete it."); 
                 }
 
                 file_data.split(/\r?\n/).forEach(line =>  {
@@ -94,6 +93,7 @@ function process_input(file_name_string){
 
                 if (begin_counter < 1 || end_counter < 1){
                     console.log("You must have at least one VEVENT in your file. Please edit the file and try again."); 
+                    resolve(false); 
                 } else {
 
                     meets_cal_req = check_calendar(outside_record); 
@@ -105,6 +105,7 @@ function process_input(file_name_string){
                         record_i = split_record(records[i]); // record_i is the array storing the individual lines of the current record
                         check_records.push(check_requirements(record_i)); 
                     } 
+
                     meets_qty_req = are_any_false(check_records); 
                     
                     // Check if the attendee value is an email or a phone number
@@ -140,22 +141,13 @@ function process_input(file_name_string){
                     // Check dtstart
                     meets_dtstart_req = check_dtstart(records); 
     
-                    // Check version 
-                    // check_records = []; 
-                    // for (let i = 0; i < outside_record.length; i++){
-                    //     check_records.push(check_version(outside_record[i])); 
-                    // } 
-
-                    // check_version(outside_record[i]);
-    
-                    // meets_version_req = are_any_false(check_records); 
-    
-                    // Check for optional arguments
     
                     if (meets_qty_req == true && meets_att_req == true && meets_met_req == true && meets_stat_req == true && meets_dtstamp_req == true && meets_dtstart_req == true && meets_cal_req == true){
                         console.log("The VEVENT has been verified. It contains no errors."); 
+                        resolve(true); 
                     } else {
-                        console.log("\n\n--YOU HAVE THE AFOREMENTIONED ISSUES IN YOUR RECORDS FILE. PLEASE EDIT THE FILE AND TRY AGAIN.--"); 
+                        console.log("\n--YOU HAVE THE AFOREMENTIONED ISSUES IN YOUR RECORDS FILE. PLEASE EDIT THE FILE AND TRY AGAIN.--"); 
+                        resolve(false); 
                     }
     
                 }
@@ -165,7 +157,6 @@ function process_input(file_name_string){
             } 
         }); 
 
-        // resolve(true); // will need to change this eventually
     });
 
 } 
@@ -243,10 +234,15 @@ function check_requirements(record_array){
         } else if (!((record_array[i].toLowerCase()).includes("begin") || (record_array[i].toLowerCase()).includes("end"))){
             // check optional or non existent properties here
             record_array.forEach(element => {
-                if (optional_properties.includes(element)) {
+                let element_new = element.split(":")[0].toLowerCase(); 
+                if (optional_properties.includes(element_new)) {
                     optional_count++;
                 } else {
-                    unknown_count++;
+                    if ((!(element_new === ("begin") || element_new === ("end") || element_new === ("attendee")|| element_new === ("status") || element_new === ("dtstart") || element_new === ("dtstamp") || element_new ===("method")))){
+                        unknown_count++;
+                    }
+                    
+                    
                 }
             });
             
@@ -283,12 +279,11 @@ function check_requirements(record_array){
 
     }
     
-    if (optional_count > 1){
+    if (optional_count > 0){
         console.log("WARNING: You have one (or more) optional properties."); 
-        valid_vevent = true; 
     }
 
-    if (unknown_count > 1){
+    if (unknown_count > 0){
         console.log("ERROR: You have one (or more) unknown properties."); 
         valid_vevent = false; 
     }
@@ -917,3 +912,5 @@ function are_any_false(arr){
 }
 
 getFileName(); 
+
+module.exports = { process_input };
