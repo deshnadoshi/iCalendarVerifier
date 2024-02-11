@@ -13,7 +13,9 @@ const optional_properties = ["class", "created", "description",
 "related", "resources", "rdate", "x-prop", "iana-prop", "name"
 ]; 
 
-
+/**
+ * Processes the input from the command line and determine if a given VEVENT is valid or not. 
+ */
 function process_input(file_name_string){   
     return new Promise((resolve, reject) => {
         
@@ -161,7 +163,9 @@ function process_input(file_name_string){
 
 } 
 
-
+/**
+ * Processes file input and determines if it is in the current directory or not. 
+ */
 function getFileName(){
     readline.question(`\n\nEnter the name of your iCalendar text file with the extension included (i.e. records.txt) [enter 'Q' to exit]\nPlease Note >> input files are sensitive to whitespace, however they are not case sensitive. \n`, input_file_name => {
         fs.readdir('.', (err, files) => {
@@ -191,7 +195,9 @@ function getFileName(){
     });
 }
 
-
+/**
+ * Splits a selected VEVENT into its individual properties and values. 
+ */
 function split_record(record){
     let record_contents = []; 
 
@@ -204,6 +210,9 @@ function split_record(record){
     return record_contents; 
 }
 
+/**
+ * Checks for the basic requirements.
+ */
 function check_requirements(record_array){
     
     // required
@@ -292,6 +301,9 @@ function check_requirements(record_array){
 
 }
 
+/**
+ * Checks if the ATTENDEE value is valid. 
+ */
 function check_attendee(record_array){
     let atd_line = ""; 
     let valid_value = true; 
@@ -333,6 +345,9 @@ function check_attendee(record_array){
 
 }
 
+/**
+ * Checks if the METHOD value is valid.
+ */
 function check_method(record_array){
     let mtd_line = ""; 
     let valid_value = true; 
@@ -370,6 +385,9 @@ function check_method(record_array){
     return valid_value; 
 }
 
+/**
+ * Checks if the STATUS value is valid. 
+ */
 function check_status(record_array){
 
     let status_line = ""; 
@@ -579,6 +597,9 @@ function check_dtstart(all_records_array){
 
 }
 
+/**
+ * Checks if the value of VERSION is valid. 
+ */
 function check_version(record_array){
     let ver_line = ""; 
     let valid_value = true; 
@@ -618,6 +639,9 @@ function check_version(record_array){
 
 }
 
+/**
+ * Checks if the required values for an iCalendar file exist and are valid. 
+ */
 function check_calendar(out_array){
 
     prodid_line = ""; 
@@ -866,6 +890,9 @@ function check_day_available(cmd_input){
      
 }
 
+/**
+ * Checks if a given date is a future date. 
+ */
 function is_future_date(cmd_input){
 
     const today = new Date(); 
@@ -898,6 +925,9 @@ function is_future_date(cmd_input){
 }
 
 
+/**
+ * Checks if any values in a given array are false. 
+ */
 function are_any_false(arr){
     for (let i = 0; i < arr.length; i++){
         if (arr[i] == false){
