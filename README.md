@@ -2,7 +2,7 @@
 #### Deshna Doshi, dd1035, 206009273
 ### Algorithm Design Description: 
 
-1. Users must enter the name of the file (.txt extensions only) in the command line when prompted. Files must be in the same directory are the Assignment 2 Folder. Files not in this directory will not be recorgnized/processed. 
+1. Users must enter the name of the file (.txt extensions only) in the command line when prompted. Files must be in the same directory are the Assignment 3 Folder. Files not in this directory will not be recorgnized/processed. 
 
 2. The program runs in a loop. Users will be asked to enter the file name continually after sorting, until they enter 'Q' or 'q'. 
 
