@@ -10,7 +10,7 @@ const optional_properties = ["class", "created", "description",
 "seq", "summary", "transp", "url", "recurid", 
 "rrule", "dtend", "duration", "attach", 
 "categories", "comment", "contact", "exdate", "rstatus", 
-"related", "resources", "rdate", "x-prop", "iana-prop", "name"
+"related", "resources", "rdate", "x-prop", "iana-prop"
 ]; 
 
 /**
