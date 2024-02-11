@@ -667,9 +667,6 @@ function check_calendar(out_array){
 }
 
 
-
-
-
 /**
  * Determines if the chosen date and time is valid. 
  * Checks for maximum and minimum possible values of each field. 
