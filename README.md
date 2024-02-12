@@ -6,7 +6,7 @@
 
 2. The program runs in a loop. Users will be asked to enter the file name continually after sorting, until they enter 'Q' or 'q'. 
 
-3. Test cases are designed with the assumption given in the problem statement (only one patient is admitted per day).
+3. Test cases are designed with the assumption given in the problem statement (only one patient is admitted per day). More than one VEVENT with a DTSTART value occuring on the same day will show an error. 
 
 4. The optional properties checked (according to the RFC document) are as follows: ["class", "created", "description", "geo", "last-mod", "location", "organizer", "priority", "seq", "summary", "transp", "url", "recurid", "rrule", "dtend", "duration", "attach", "categories", "comment", "contact", "exdate", "rstatus", "related", "resources", "rdate", "x-prop", "iana-prop"]; 
 

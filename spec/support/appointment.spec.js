@@ -105,4 +105,10 @@ describe ('VEVENT Verifier', () => {
         const result = await process_input("test17.txt"); 
         expect(result).toBe(true); 
     });
+
+    // Test Case 18: Two or more VEVENT components may not have the same DTSTART values, and these records should not be verified. 
+    it ('should not verify components with a same day DTSTART values.', async () => {
+        const result = await process_input("test18.txt"); 
+        expect(result).toBe(false); 
+    });
 })

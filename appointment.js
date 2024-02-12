@@ -44,6 +44,7 @@ function process_input(file_name_string){
                 let meets_dtstart_req = true; 
                 let meets_version_req = true; 
                 let meets_cal_req = true; 
+                let is_repeat = false;  
 
                 let begin_counter = 0; 
                 let end_counter = 0;
@@ -142,9 +143,12 @@ function process_input(file_name_string){
     
                     // Check dtstart
                     meets_dtstart_req = check_dtstart(records); 
+
+                    is_repeat = check_per_day(records); 
+
     
     
-                    if (meets_qty_req == true && meets_att_req == true && meets_met_req == true && meets_stat_req == true && meets_dtstamp_req == true && meets_dtstart_req == true && meets_cal_req == true){
+                    if (meets_qty_req == true && meets_att_req == true && meets_met_req == true && meets_stat_req == true && meets_dtstamp_req == true && meets_dtstart_req == true && meets_cal_req == true && is_repeat == false){
                         console.log("The VEVENT has been verified. It contains no errors."); 
                         resolve(true); 
                     } else {
@@ -298,6 +302,61 @@ function check_requirements(record_array){
     }
 
     return valid_vevent; 
+
+}
+
+/**
+ * Check for more than one appointment per day.
+ */
+
+function check_per_day(record_array){
+    let time_str_array = [];
+    let time_arr = []; 
+
+    for (let i = 0; i < record_array.length; i++){
+        record_i = split_record(record_array[i]); 
+        for (let j = 0; j < record_i.length; j++){
+            if ((record_i[j].toLowerCase()).includes("dtstart")){
+                time_str_array.push(record_i[j]); 
+            }
+        }
+    }
+
+    for (let i = 0; i < time_str_array.length; i++){
+        if (time_str_array[i].includes(":")){
+            let time_val = []; 
+            time_val = time_str_array[i].split(":"); 
+            if (time_val.length > 2 || time_val.length < 1){
+                is_time_valid = false; 
+                break; 
+            } else {
+                time_arr.push(time_val[1]); 
+            }
+        }
+    }
+
+    let day_val = []; 
+    for (let i = 0; i < time_arr.length; i++){
+        if (time_arr[i].includes("T")){
+            day_val.push(time_arr[i].split("T")[0]); 
+        }
+    }
+
+    let is_dup = false; 
+
+    for (let i = 0; i < day_val.length - 1; i++) {
+        for (let j = i + 1; j < day_val.length; j++) {
+          if (day_val[i] === day_val[j]) {
+            is_dup = true;
+          }
+        }
+      }
+
+      if (is_dup){
+        console.log("DTSTART values must be unique for each VEVENT. The doctor only admits one patient per day."); 
+      }
+    
+      return is_dup; 
 
 }
 
