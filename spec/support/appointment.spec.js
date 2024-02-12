@@ -111,4 +111,17 @@ describe ('VEVENT Verifier', () => {
         const result = await process_input("test18.txt"); 
         expect(result).toBe(false); 
     });
+
+    // Test Case 19: DTSTAMP values must be before DTSTART values. 
+    it ('should not verify components with a DTSTART value that occurs before DTSTAMP.', async () => {
+        const result = await process_input("test19.txt"); 
+        expect(result).toBe(false); 
+    });
+
+    // Test Case 20: You cannot schedule an appointment beyond the year 2050. 
+    it ('should not verify components with a DTSTART value that is beyond 2050.', async () => {
+        const result = await process_input("test20.txt"); 
+        expect(result).toBe(false); 
+    });
+
 })

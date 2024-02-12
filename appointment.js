@@ -146,9 +146,12 @@ function process_input(file_name_string){
 
                     is_repeat = check_per_day(records); 
 
+                    let is_chronology = false; 
+                    is_chronology = check_chronology(records); 
+
     
     
-                    if (meets_qty_req == true && meets_att_req == true && meets_met_req == true && meets_stat_req == true && meets_dtstamp_req == true && meets_dtstart_req == true && meets_cal_req == true && is_repeat == false){
+                    if (meets_qty_req == true && meets_att_req == true && meets_met_req == true && meets_stat_req == true && meets_dtstamp_req == true && meets_dtstart_req == true && meets_cal_req == true && is_repeat == false && is_chronology == true){
                         console.log("The VEVENT has been verified. It contains no errors."); 
                         resolve(true); 
                     } else {
@@ -751,6 +754,80 @@ function check_calendar(out_array){
 
 
 /**
+ * Ensure that DTSTAMP values occure before DTSTART values.
+ */
+function check_chronology(record_array){
+
+    let dtstart_arr = []; 
+    let dtstamp_arr = []; 
+
+    for (let i = 0; i < record_array.length; i++){
+        record_i = split_record(record_array[i]); 
+        for (let j = 0; j < record_i.length; j++){
+            if ((record_i[j].toLowerCase()).includes("dtstart")){
+                dtstart_arr.push(record_i[j].split(":")[1]); 
+            }
+        }
+    }
+
+    for (let i = 0; i < record_array.length; i++){
+        record_i = split_record(record_array[i]); 
+        for (let j = 0; j < record_i.length; j++){
+            if ((record_i[j].toLowerCase()).includes("dtstamp")){
+                dtstamp_arr.push(record_i[j].split(":")[1]); 
+            }
+        }
+    }
+
+    let dtstart_date_arr = []; 
+    let dtstamp_date_arr = []; 
+
+    for (let i = 0; i < dtstart_arr.length; i++){
+        dtstart_date_arr.push(get_date_obj(dtstart_arr[i])); 
+    }
+
+
+    for (let i = 0; i < dtstamp_arr.length; i++){
+        dtstamp_date_arr.push(get_date_obj(dtstamp_arr[i])); 
+    }
+
+
+    let is_after = true; 
+
+    for (let i = 0; i < dtstamp_arr.length; i++) {
+        if (dtstart_date_arr[i] <= dtstamp_date_arr[i]) {
+          is_after = false;
+        }
+      }    
+
+    if (!is_after){
+        console.log("Please ensure that your DTSTAMP values occur before your DTSTART values."); 
+    }
+
+    return is_after;
+
+}
+
+function get_date_obj(cmd_input){
+    date_info = cmd_input.substring(0, 8); // All of the data before the 'T', represents the date
+    time_info = cmd_input.substring(9); // All of the data after the 'T', represents the time
+
+    year = date_info.substring(0, 4); 
+    month = date_info.substring(4, 6); 
+    day = date_info.substring(6); 
+
+    hour = time_info.substring(0, 2); 
+    min = time_info.substring(2, 4); 
+    sec = time_info.substring(4);
+
+    date_arg = year + "-" + month + "-" + day + "T" + hour + ":" + min + ":" + sec; 
+
+    date_obj = new Date(date_arg); 
+    return date_obj; 
+}
+
+
+/**
  * Determines if the chosen date and time is valid. 
  * Checks for maximum and minimum possible values of each field. 
  * @param {} check_date The date inputted by the user. 
@@ -945,6 +1022,10 @@ function check_day_available(cmd_input){
         console.log("DTSTART is not a future date. You may only schedule appointments at future dates."); 
     }
 
+    if (date_obj.getFullYear() > 2050){
+        meets_day_req = false; 
+        console.log("You may not schedule an appointment beyond the year 2050."); 
+    }
     return meets_day_req; 
      
 }

@@ -10,6 +10,10 @@
 
 4. The optional properties checked (according to the RFC document) are as follows: ["class", "created", "description", "geo", "last-mod", "location", "organizer", "priority", "seq", "summary", "transp", "url", "recurid", "rrule", "dtend", "duration", "attach", "categories", "comment", "contact", "exdate", "rstatus", "related", "resources", "rdate", "x-prop", "iana-prop"]; 
 
+5. DTSTAMP values must occur before DTSTART values. 
+
+6. Appointments cannot be scheduled beyond 2050. (The year in DTSTART must be before 2050).
+
 #### Valid vs. Invalid File Constraints
 1. Whitespace is not permitted in the files. For example, 'ATTENDEE   :hello@gmail.com' will be considered invalid. 
 
