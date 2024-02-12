@@ -6,6 +6,9 @@
 
 2. The program runs in a loop. Users will be asked to enter the file name continually after sorting, until they enter 'Q' or 'q'. 
 
+3. Test cases are designed with the assumption given in the problem statement (only one patient is admitted per day).
+
+4. The optional properties checked (according to the RFC document) are as follows: ["class", "created", "description", "geo", "last-mod", "location", "organizer", "priority", "seq", "summary", "transp", "url", "recurid", "rrule", "dtend", "duration", "attach", "categories", "comment", "contact", "exdate", "rstatus", "related", "resources", "rdate", "x-prop", "iana-prop"]; 
 
 #### Valid vs. Invalid File Constraints
 1. Whitespace is not permitted in the files. For example, 'ATTENDEE   :hello@gmail.com' will be considered invalid. 
