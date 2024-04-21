@@ -1,5 +1,5 @@
 # ECE452: Software Engineering Assignment 3
-#### Deshna Doshi, dd1035, 206009273
+#### Deshna Doshi, dd1035
 ### Algorithm Design Description: 
 
 1. Users must enter the name of the file (.txt extensions only) in the command line when prompted. Files must be in the same directory are the Assignment 3 Folder. Files not in this directory will not be recorgnized/processed. 
